@@ -1,0 +1,31 @@
+
+TXT file format v1:
+
+HEADER:
+  FILENAME   ( 12 bytes )
+  EXTENSION  (  4 bytes )
+  VERSION    (  2 bytes )
+  BYTELENGTH (  2 bytes )
+  RNDID      (  4 bytes )
+
+BYTEDATA:
+0 0000000   1 0000000
+  |||||||   |      \\_____Palette ID
+  IDASCII   \_________Change Palette
+
+WRD file format v1:
+
+HEADER:
+  FILENAME   ( 12 bytes )
+  EXTENSION  (  4 bytes )
+  VERSION    (  2 bytes )
+  BYTELENGTH (  2 bytes )
+  RNDID      (  4 bytes )
+  CUSFONT?   (  1 bytes )
+  CUSPAL?    (  1 byte  )
+
+FONTDATA:
+  FILENAME   ( 12 bytes )
+  RNDID      (  4 bytes )
+
+

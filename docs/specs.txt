@@ -1,0 +1,292 @@
+------------------------------------------------------
+
+           Helio 213 System Specifications
+
+------------------------------------------------------
+
+0000 0000 0000 0000 0000 - Start of System ROM      
+0000 0001 0000 0000 0000 - Start of Stack  RAM      
+0000 0001 0111 1111 1111 - System Stack Pointer     
+0000 0001 1000 0000 0000 - Start of Random Number   
+0000 0001 1000 0000 0100 - Start of Keymap          
+0000 0001 1000 0001 0100 - Start of Clock Second    
+0000 0001 1000 0001 1000 - Start of System Control  
+0000 0001 1000 0001 1010 - Start of System Audio    
+0000 0001 1000 0010 0000 - Start of 8-bit RAM       
+0000 0101 1000 0010 0000 - Start of 16-bit RAM      
+0000 0101 1001 0010 0000 - Start of Character Buffer
+0000 0110 0010 1000 0000 - Start of Palette Buffer  
+0000 0110 0010 1100 0000 - Start of Font Buffer     
+0000 0111 0010 1100 0000 - Start of PMEM 1          
+0000 1111 0010 1100 0000 - Start of PMEM 2          
+0001 0111 0010 1100 0000 - Start of EXTPMEM         
+0001 1111 0010 1011 1111 - Last address of EXTPMEM  
+
+0x00000 -> 0x00FFF : System ROM         
+0x01000 -> 0x017FE : Stack  RAM         
+0x017FF -> 0x017FF : Stack Pointer      
+0x01800 -> 0x01803 : Random Number      
+0x01804 -> 0x01813 : Keymap             
+0x01814 -> 0x01817 : System Clock       
+0x01818 -> 0x01819 : System Control     
+0x0181A -> 0x0181F : Audio Buffer       
+0x01820 -> 0x0581F : 8-bit RAM          
+0x05820 -> 0x0591F : 16-bit RAM         
+0x05920 -> 0x0627F : Character Buffer   
+0x06280 -> 0x062BF : Palette Buffer     
+0x062C0 -> 0x072BF : Font Buffer        
+0x072C0 -> 0x0F2BF : PMEM 1             
+0x0F2C0 -> 0x172BF : PMEM 2             
+0x172C0 -> 0x1F2BF : EXTPMEM           
+
+
+I think I must have messed something up in either the 
+emulator or the assembler somehow. Gotta figure out 
+if and where.
+
+
+Addresses are for cell indices; the memory controller
+decodes region width. Invalid accesses raise an error.
+The current emulator uses messages such as
+"WRITE to ROM", "WRITE to char buffer", and
+"READ/WRITE out of range".
+
+Cells in the character buffer are 9 bits long,
+just like cells in 16 bit ram are 16 long,
+cells in 8 bit ram are 8 long. The current memory map
+has no 32-bit memory region, but the emulator's
+general-purpose registers are 32-bit.
+
+Colors in the color palette are stored in 
+the RRRGGGBB format. Four palettes can be
+stored in RAM at any given time.
+
+The system's STACK is a bank of 2047 16 bit cells; 
+general 16-bit data can be software-packed into
+8-bit cells or can be stored in the general
+purpose 16-bit work RAM. 0x00FFF is the point
+where the system stores and can access the
+stack pointer's dedicated 11-bit register.
+
+All other memory is byte-aligned.
+
+------------------------------------------------------
+
+WRITE / STORE - Write to cell
+	Takes address and value and 
+	writes to given address.
+	Current emulator mnemonic: STORE.
+	The emulator currently doesn't enforce
+	region word length; values are masked or
+	truncated to the region width.
+
+READ / LOAD - Read from cell
+	Takes address and returns
+	value of address.
+	Current emulator mnemonic: LOAD.
+	The emulator currently doesn't enforce
+	region word length; values are masked or
+	truncated to the region width.
+
+READs and WRITEs to RAM are intended to agree with
+word length of the region. The current emulator
+masks/truncates rather than trapping on width
+mismatch. These commands cannot be used to read
+from or write to the character buffer; doing so
+raises an error.
+
+WCHR  - Write character 
+	Takes address, palette ID & character ID
+	and writes to the given address.
+	A multi-word instruction.
+	Current emulator form: WCHR Ra, Rb, Rc
+	(address in Ra, palette ID in Rb,
+	character ID in Rc; Rc is encoded in an
+	extra instruction word). Palette ID is
+	masked to 2 bits and character ID to 7 bits.
+
+RCHR  - Read character 
+        Takes address, writes palette ID to Rp
+        and character ID to Rc.
+        Both are zero-extended to 8 bits.
+        Current emulator form: RCHR Ra, Rb, Rc
+        (address in Ra, palette destination in Rb,
+        character destination in Rc; Rc is encoded
+        in an extra instruction word).
+
+WCHR and RCHR can only be used to interact with 
+the character buffer, translating between 2 bit 
+palette IDs + 7 bit character IDs and the more
+standard 8 bit RAM used by the majority of the
+system for storage and variables and such.
+
+PUSH  - Push to stack
+        
+POP   - Pull from stack
+
+The stack pointer (SP) is a dedicated 11-bit
+register holding a cell index into 16-bit RAM.
+Because 16-bit RAM is 2047 cells, SP ranges
+over 0x000–0x7FE, which maps to physical
+addresses 0x00800–0x00FFE.
+
+  On reset, SP is set to 0x7FE.
+  The stack grows downward toward 0x00800.
+
+  PUSH Rs — write the 16-bit register Rs to the cell
+  at 0x00800 + SP, then decrement SP by 1.
+
+  POP Rd — increment SP by 1, then read the cell
+  at 0x00800 + SP into Rd.
+
+If SP would leave 0x000–0x7FE on a PUSH or POP,
+the CPU raises STACK OVERFLOW or STACK UNDERFLOW
+and leaves SP unchanged, and no memory is written.
+In the current emulator, a PUSH with SP=0 traps
+before writing, so cell 0x00800 is never written.
+Writes to 0x00FFF are masked to 11 bits; valid
+stack operation assumes SP stays in 0x000–0x7FE.
+
+CALL  - Call subroutine
+        Takes target address, pushes the address
+        of the next instruction onto the stack,
+        then jumps to the target address.
+        Pushes the return address as two cells:
+        high 4 bits first, then low 16 bits.
+        The high 4 bits are zero-extended to a
+        full 16-bit cell before being pushed.
+        Current emulator uses a 16-bit target
+        immediate and two ordinary PUSH operations.
+        It does not perform the older two-cell
+        precheck; if a push overflows, an error is
+        raised but PC is still set to the target.
+
+RET   - Return from subroutine
+        Pops the low 16 bits of the return
+        address, then the high 4 bits,
+        assembles the 20-bit address,
+        and jumps to it.
+        Current emulator uses two ordinary POP
+        operations and does not perform the older
+        two-cell precheck. If a POP underflows,
+        it returns 0 and the assembled PC may be
+        partial.
+
+CALL and RET use the same stack as PUSH and POP.
+
+  On RET, the assembled address is the 4-bit
+  high field shifted left 16, OR'd with the
+  low 16 bits.
+
+------------------------------------------------------
+
+        Current Emulator Instruction Set
+
+------------------------------------------------------
+
+Main codes:
+  SUBCODE               (Prefix for extended ALU/Jump operations)
+  HALT                  (Halt the CPU)
+  LOADI Rd, imm20       (Load 20-bit immediate into Rd)
+  ADD Rd, Rs            (Add Rs to Rd)
+  SUB Rd, Rs            (Subtract Rs from Rd)
+  JMP addr16            (Unconditional jump)
+  JZ Ra, addr16         (Jump if Ra == 0)
+  JNZ Ra, addr16        (Jump if Ra != 0)
+  LOAD Rd, Rs           (Load memory at address Rs into Rd)
+  STORE Ra, Rs          (Store Rs into memory at address Ra)
+  PUSH Rs               (Push Rs onto stack)
+  POP Rd                (Pop from stack into Rd)
+  CALL addr16           (Push PC, then jump to addr16)
+  RET                   (Pop PC from stack)
+  WCHR Ra, Rb, Rc       (Write character Rc to address Ra using palette Rb)
+  RCHR Ra, Rb, Rc       (Read character at Ra into palette Rb and char Rc)
+Sub codes:
+  NOP                   (No Operation)
+  MUL   Ra, Rb          (Multiply)
+  DIV   Ra, Rb          (Divide)
+  MOD   Ra, Rb          (Modulo/Remainder)
+  AND   Ra, Rb          (Bitwise AND)
+  OR    Ra, Rb          (Bitwise OR)
+  XOR   Ra, Rb          (Bitwise XOR)
+  SHL   Ra, imm20       (Shift Left)
+  SHR   Ra, imm20       (Shift Right)
+  JLT   Ra, Rb          (Jump if Less Than)
+  JGT   Ra, Rb          (Jump if Greater Than)
+  NOT   Ra              (Bitwise Invert)
+  MOV   Ra, Rb          (Copy value from one register to another)
+  RND   Ra, imm20       (Random Number)
+  MOVPC Ra              (Move PC into register)
+  JMPR  Ra              (Jump to address in Ra; Rb = 0)
+  CALLR Ra              (Push PC, jump to address in Ra; Rb = 1)
+
+JMPR and CALLR share the sub-opcode 0xF.
+To differentiate between them, the CPU
+reads Rb. The assembler reads JMPR & CALLR
+and translates, inserting the value for
+the proper operation into Rb.
+
+R0..R15 are stored as 32-bit cells in the
+current emulator. LOADI loads a 20-bit
+immediate. PC is 20-bit, but JMP and CALL
+targets are 16-bit immediates in this version.
+
+Byte data can be hardcoded using .byte [value] 
+while writing the assembly. You gotta be careful
+doing this though because instructions are 16-bit,
+so if you try to execute instructions after hard-
+coding an odd number of bytes, I believe that 
+causes a segmentation fault- You will end up
+reading half of one instruction then half of 
+the next instruction. The easy solution to 
+this is to only ever define bytes at the end 
+of any given .asm file.
+
+------------------------------------------------------
+
+        Current Display / Memory Notes
+
+------------------------------------------------------
+
+Character buffer: 60 columns x 40 rows (2400 cells).
+Each cell: 9 bits = 2-bit palette ID + 7-bit char ID.
+
+Font: 128 glyphs, 8x8 pixels, 4 bits per pixel,
+32 bytes per glyph.
+
+Palette: 4 palettes x 16 colors, stored as
+RRRGGGBB bytes.
+
+PMEM 1, PMEM 2, and EXTPMEM are byte-aligned,
+32 KiB each in the current map, and are saved
+to memory/*.bin by the emulator.
+
+Font and palette buffers are loaded from
+memory/font.bin and memory/palette.bin by the
+current emulator; missing files leave the buffers
+zeroed.
+
+------------------------------------------------------
+
+        Memory mapping for I/O
+
+------------------------------------------------------
+
+Keyboard memory map/ID index/whatever you call this
+       Byte	IDs	  Keys
+       0	0–7	  A B C D E F G H
+       1	8–15	  I J K L M N O P
+       2	16–23	  Q R S T U V W X
+       3	24–31	  Y Z 1 2 3 4 5 6
+       4	32–39	  7 8 9 0 Space Enter F1 F2
+       5	40–47	  F3–F10
+       6	48–55	  F11 F12 Esc Tab Caps Backspace Home End
+       7	56–63	  PgUp PgDn ↑ ↓ ← → LShift RShift
+       8	64–70	  LCtrl RCtrl LAlt RAlt LGUI RGUI Menu (71 reserved)
+       9	72–79	  ` - = [ ] \ ; ' |
+       10	80–87	  , . / Insert Delete PrintScreen ScrollLock Pause
+       11	88–95	  NumLock KP/ KP* KP- KP7 KP8 KP9 KP+
+       12	96–103	  KP4 KP5 KP6 KP1 KP2 KP3 KP0 KP.
+       13	104	  KP Enter
+       14–15	112–127	  free
+

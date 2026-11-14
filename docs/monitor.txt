@@ -1,0 +1,38 @@
+Documentation for our basic monitor/shell operating system.
+Basically just a scratchpad for notes and a place to reference
+when writing new functions for the OS itself.
+
+Register map
+    Reg     Role                            Written outside START?                                          Preserved across helpers?
+    R0      Cursor (char-buffer address)    Yes - as the cursor moves                                       Yes (by convention)
+    R9      Palette ID (constant 3)         Never                                                           Yes - read-only
+    R10     Constant 1 (increment)          Never                                                           Yes - read-only
+    R11     Input-buffer write tail         Yes - PRINT_CHAR, HANDLE_BACKSPACE, HANDLE_ENTER, PRINT_PROMPT  Yes
+    R12     Input-buffer length             Yes - PRINT_CHAR, HANDLE_BACKSPACE, PRINT_PROMPT                Yes
+    R14     Prompt cell (location of >)     Yes - NORMAL_ENTER, PRINT_PROMPT                                Yes
+    R13     ROM-string pointer for STRCMP   In command section only                                         Dead outside HANDLE_COMMAND / STRCMP
+    R15     User-input parse cursor         In command section only                                         Dead outside HANDLE_COMMAND / STRCMP / DO_ECHO
+    R1      Scratch + function return val   Anywhere                                                        No
+    R2      Scratch                         Anywhere                                                        No
+    R3      Scratch                         Anywhere                                                        No
+    R4      Scratch                         Anywhere                                                        No
+    R5      Scratch                         Anywhere                                                        No
+    R6      Scratch                         Anywhere                                                        No
+    R7      Scratch                         Anywhere                                                        No
+    R8      Scratch                         Anywhere                                                        No
+
+Shell commands
+    Name    Working?    Description
+    ECHO    Yes         Return user-provided string
+    PAL     Yes         Increment the palette by 1
+    RUN     Yes         Run program in addressable memory space
+    LOAD    Yes         Copy contents from memory address A to B
+    FILE    TBI*        Open file browser 
+    FORMAT  TBI*        Format a PMEM module & create filesystem
+ 
+  *To Be Implemented
+
+I'd like to eventually implement a BASIC interpreter for this
+computer, but I'm not too focused on that right now. 
+
+My first focus is going to be building a filesystem.

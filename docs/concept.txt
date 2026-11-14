@@ -1,0 +1,93 @@
+
+------------------------------------------------------  
+
+           Fantasy console design, 1980s
+
+------------------------------------------------------  
+
+The Helio 213
+
+20 bit address bus
+13 MHz CPU clock speed
+
+Main system RAM
+2048 16-bit words
+~16k  8-bit words
+ 256 32-bit words
+
+Char buffer RAM - 2700 bytes
+ 2-bit palette IDs
+ 7-bit character IDs
+ 60 characters per line
+ 40 lines per screen
+
+Font buffer     - 4096 bytes
+ 64 cells per character
+ 8x8 pixels
+ 4 bit color depth
+ 16 possible colors per character
+ 256 bits / 32 bytes per character
+ 128 characters per font
+
+Persistent Memory Modules - 32kb each
+ Can read or write to any active PMEM module
+ Data on PMEM modules is not lost on power cycle
+ Two onboard PMEM modules is standard
+ One slot is supplied for external PMEM modules
+ External PMEM modules can have READ-ONLY and RW banks
+
+System ROM - 32 kb
+
+$849 on launch 19/11/1983
+$399 by successor's launch
+
+------------------------------------------------------
+
+The Helio 2046
+
+24 bit address bus
+16 MHz CPU clock speed
+512 KB Main     RAM
+128 KB Video    RAM
+64 KB system    ROM
+64 KB language  ROM
+256 KB Internal PMEM
+2 EXTPMEM slots
+2 SERIAL ports
+1 PRINTER port
+2 HDD Bays
+3.5" FDD
+
+Fully backwards compatible with the Helio 213.
+Unfortunately, this was a one-way street.
+Software made for the 2046 was often
+built to be RAM-compact for access
+to the wider market of 213 users, 
+but not always. Any program that
+wanted to take advantage of its full
+potential had to sacrifice compatibility 
+with the 213 in order to do it, mostly- though,
+with expansion cards, it was possible to expand the
+RAM on the Helio 213 up to 800 KB more than stock, theoretically.
+Very few commercial programs were ever built to take advantage of this, sadly.
+
+Four video modes: Legacy, Charmap, Color Bitmap & Mono Bitmap.
+ Legacy reproduces the exact function of the 213's font and char buffers.
+ Charmap is an upgraded version with 80 columns at 640x400 with 128 colors.
+ Color Bitmap is a 400x250 16-color bitmap mode, which is rather unusual.
+ Mono Bitmap is actually a 640x400 4-color mode, which is also unusual. 
+ For output, it has RGB out, RF out and composite out
+
+For audio, it has a full 8-channl FM+PCM chip, a great upgrade from
+the software synthesizing used most often by the 213. 
+A common expansion for the 213 was a sound card;
+With the 2046, you don't need one, for now.
+
+Yes, the name scheme is bullshit, but it is 
+good marketing bullshit. 20-4 from twenty-four. 
+6 from 16. The ad was simple, and dramatic:
+
+"Welcome to the future. Welcome to 2046."
+
+$1295 on launch 20/4/1986
+
